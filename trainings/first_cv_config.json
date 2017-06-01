@@ -1,0 +1,15 @@
+{
+  "orient": 12,
+  "spatial_size": [
+    32,
+    32
+  ],
+  "pix_per_cell": 8,
+  "hist_bins": 32,
+  "cell_per_block": 2,
+  "color_space": "HLS",
+  "hog_feat": true,
+  "hog_channel": "ALL",
+  "spatial_feat": true,
+  "hist_feat": true
+}

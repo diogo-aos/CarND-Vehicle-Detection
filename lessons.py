@@ -1,7 +1,9 @@
 import matplotlib.image as mpimg
 import numpy as np
 import cv2
+import time
 from skimage.feature import hog
+
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block,
                         vis=False, feature_vec=True):
@@ -25,7 +27,7 @@ def get_hog_features(img, orient, pix_per_cell, cell_per_block,
 # Define a function to compute binned color features
 def bin_spatial(img, size=(32, 32)):
     # Use cv2.resize().ravel() to create the feature vector
-    features = cv2.resize(img, size).ravel()
+    features = cv2.resize(img, tuple(size)).ravel()
     # Return the feature vector
     return features
 
@@ -46,7 +48,7 @@ def color_hist(img, nbins=32, bins_range=(0, 256)):
 # window size (x and y dimensions),
 # and overlap fraction (for both x and y)
 def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
-                    xy_window=(64, 64), xy_overlap=(0.5, 0.5)):
+                    xy_window=[64, 64], xy_overlap=[0.5, 0.5]):
     # If x and/or y start/stop positions not defined, set to image size
     x_start_stop[0] = x_start_stop[0] or 0
     x_start_stop[1] = x_start_stop[1] or img.shape[1]
@@ -93,17 +95,7 @@ def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
     # Return the image copy with boxes drawn
     return imcopy
 
-# Define a function to extract features from a list of images
-# Have this function call bin_spatial() and color_hist()
-def extract_features(img, color_space='RGB', spatial_size=(32, 32),
-                        hist_bins=32, orient=9,
-                        pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                        spatial_feat=True, hist_feat=True, hog_feat=True):
-    # Create a list to append feature vectors to
-    features = []
-    image = img
-
-    # apply color conversion if other than 'RGB'
+def convert_color(image, color_space):
     if color_space != 'RGB':
         if color_space == 'HSV':
             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
@@ -116,14 +108,33 @@ def extract_features(img, color_space='RGB', spatial_size=(32, 32),
         elif color_space == 'YCrCb':
             feature_image = cv2.cvtColor(image, cv2.COLOR_RGB2YCrCb)
     else: feature_image = np.copy(image)
+    return feature_image
 
+# Define a function to extract features from a list of images
+# Have this function call bin_spatial() and color_hist()
+def extract_features(img, color_space='RGB', spatial_size=(32, 32),
+                        hist_bins=32, orient=9,
+                        pix_per_cell=8, cell_per_block=2, hog_channel=0,
+                        spatial_feat=True, hist_feat=True, hog_feat=True):
+    # Create a list to append feature vectors to
+    features = []
+    image = img
+    image = img.astype(np.float32)/255
+    # apply color conversion if other than 'RGB'
+    feature_image = convert_color(image, color_space)
+
+    # spatial_time = time.time()
     if spatial_feat == True:
         spatial_features = bin_spatial(feature_image, size=tuple(spatial_size))
         features.append(spatial_features)
+    # spatial_time = time.time() - spatial_time
+    # hist_time = time.time()
     if hist_feat == True:
         # Apply color_hist()
         hist_features = color_hist(feature_image, nbins=hist_bins)
         features.append(hist_features)
+    # hist_time = time.time() - hist_time
+    # hog_time = time.time()
     if hog_feat == True:
     # Call get_hog_features() with vis=False, feature_vec=True
         if hog_channel == 'ALL':
@@ -138,6 +149,11 @@ def extract_features(img, color_space='RGB', spatial_size=(32, 32),
                         pix_per_cell, cell_per_block, vis=False, feature_vec=True)
         # Append the new feature vector to the features list
         features.append(hog_features)
+    # hog_time = time.time() - hog_time
+    # print('spatial time:', spatial_time)
+    # print('hist time:', hist_time)
+    # print('hog time:', hog_time)
+    # print(hog_time/(hog_time + spatial_time + hist_time))
     features = np.concatenate(features)
     # Return list of feature vectors
     return features
@@ -154,3 +170,15 @@ def extract_features_files(imgs_fn, *args, **kwargs):
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         im_features = extract_features(img, *args, **kwargs)
         yield im_features
+
+
+def create_heatmap(img, windows, threshold=0):
+    heatmap = np.zeros((img.shape[0], img.shape[1]))
+    for window in windows:
+        heatmap[window[0][1]:window[1][1], window[0][0]:window[1][0]] += 1
+    return apply_threshold(heatmap, threshold)
+
+def apply_threshold(img, threshold):
+    im = img.copy()
+    im[im <= threshold] = 0
+    return im

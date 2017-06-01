@@ -1,21 +1,19 @@
-from sklearn.model_selection import train_test_split
-from sklearn.svm import LinearSVC
-from sklearn.preprocessing import StandardScaler
-
-from lessons import extract_features_files
-
-import numpy as np
-
 import pickle
 import json
-
 import sys
 import fnmatch
 import os
-
 import time
+import multiprocessing as mp
+from collections import OrderedDict
+
+from sklearn.model_selection import train_test_split
+from sklearn.svm import LinearSVC
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 import tqdm
 
+from lessons import extract_features_files
 from utils import *
 
 train_config = get_train_config_from_cli(sys.argv)
@@ -25,6 +23,12 @@ if '--train-name' in sys.argv:
     train_name = sys.argv[idx + 1]
 else:
     train_name = 'classifier'
+
+if '-o' in sys.argv:
+    idx = sys.argv.index('-o')
+    output_dir = sys.argv[idx + 1]
+else:
+    output_dir = ''
 
 
 cars_root_fn = '/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/vehicles/'
@@ -47,36 +51,57 @@ print('not cars length:', len(not_cars))
 # cars = cars[:500]
 # not_cars = not_cars[:500]
 
-car_features_gen = extract_features_files(cars, **train_config)
-not_car_features_gen = extract_features_files(not_cars, **train_config)
+cars = cars[::4]
 
-car_features = []
-not_car_features = []
+print('training with {} car samples and {} not car sampels'.format(len(cars), len(not_cars)))
+
+all_fn = cars.copy()
+all_fn.extend(not_cars)
+
+import tempfile
+
+# 4 processes, one for half of each set
+def extract(lst, q):
+    fn = tempfile.mktemp()
+    feature_gen = extract_features_files(lst, **train_config)
+    features = list(feature_gen)
+    with open(fn, 'wb') as f:
+        pickle.dump(features, f)
+    q.put(fn)
+    print('done; saved data in ', fn)
 
 feature_ext_time = time.time()
 
-progress = tqdm.tqdm(total=len(cars) + len(not_cars))
-print('extracting cars...')
-for feature in car_features_gen:
-    car_features.append(feature)
-    progress.update()
+n_procs = 4
+steps = list(np.linspace(0, len(all_fn), n_procs+1, dtype=np.int))
+queues = [mp.Queue() for x in range(n_procs)]
+procs = []
+for i, q in enumerate(queues):
+    p = mp.Process(target=extract, args=(all_fn[steps[i]:steps[i+1]], q))
+    p.start()
+    procs.append(p)
 
-print('extracting not cars...')
-for feature in not_car_features_gen:
-    not_car_features.append(feature)
-    progress.update()
+temp_files = [q.get(block=True) for q in queues]
+print(temp_files)
 
 feature_ext_time = round(time.time() - feature_ext_time, 2)
+print('took {} seconds to extract all features'.format(feature_ext_time))
+
+all_features = []
+for fn in temp_files:
+    with open(fn, 'rb') as f:
+        all_features.extend(pickle.load(f))
+
 
 # Create an array stack of feature vectors
-X = np.vstack((car_features, not_car_features)).astype(np.float64)
+X = np.vstack(tuple(all_features)).astype(np.float64)
 # Fit a per-column scaler
 X_scaler = StandardScaler().fit(X)
 # Apply the scaler to X
 scaled_X = X_scaler.transform(X)
 
 # Define the labels vector
-y = np.hstack((np.ones(len(car_features)), np.zeros(len(not_car_features))))
+y = np.hstack((np.ones(len(cars)), np.zeros(len(not_cars))))
 
 
 # Split up data into randomized training and test sets
@@ -105,29 +130,50 @@ print('For these',n_predict, 'labels: ', y_test[0:n_predict])
 print(round(predict_10_time, 5), 'Seconds to predict',
       n_predict,'labels with SVC')
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 classifier_fn = '{}_classifier.p'.format(train_name)
 metadata_fn = '{}_metadata.json'.format(train_name)
 classifier_config_fn = '{}_cv_config.json'.format(train_name)
+classifier_run_config_fn = '{}_run_config.json'.format(train_name)
+
+classifier_fn = os.path.join(output_dir, classifier_fn)
+metadata_fn = os.path.join(output_dir, metadata_fn)
+classifier_config_fn = os.path.join(output_dir, classifier_config_fn)
+classifier_run_config_fn = os.path.join(output_dir, classifier_run_config_fn)
 
 with open(classifier_fn, 'wb') as f:
     pickle.dump({'classifier': svc, 'scaler': X_scaler}, f)
-metadata = {
-    'accuracy': accuracy,
-    'train_size': len(X_train),
-    'test_size': len(X_test),
-    'n_features': len(X_train[0]),
-    'feature_extraction_time': feature_ext_time,
-    'train_time': train_time,
-    'predict_10_time': predict_10_time
-}
-
-with open(metadata_fn, 'w') as f:
-    json.dump(metadata, f, indent=2)
 
 with open(classifier_config_fn, 'w') as f:
     json.dump(train_config, f, indent=2)
 
+with open('run_config_default.json', 'r') as f:
+    run_config_default = json.load(f, object_pairs_hook=OrderedDict)
+
+run_config_default['scaler_classifier_path'] = classifier_fn
+run_config_default['train_config_path'] = classifier_config_fn
+
+with open(classifier_run_config_fn, 'w') as f:
+    json.dump(run_config_default, f, indent=2)
+
+metadata = OrderedDict({
+    'n_cars': len(cars),
+    'n_not_cars': len(not_cars),
+    'n_features': len(X_train[0]),
+    'feature_extraction_time': feature_ext_time,
+    'train_size': len(X_train),
+    'test_size': len(X_test),
+    'accuracy': accuracy,
+    'train_time': train_time,
+    'predict_10_time': predict_10_time,
+    'comment': '',
+})
+
+with open(metadata_fn, 'w') as f:
+    json.dump(metadata, f, indent=2)
+
 print('saved classifier and scaler in {}'.format(classifier_fn))
 print('saved classifier metadata in {}'.format(metadata_fn))
 print('saved classifier config in {}'.format(classifier_config_fn))
+print('saved classifier default run config in {}'.format(classifier_run_config_fn))

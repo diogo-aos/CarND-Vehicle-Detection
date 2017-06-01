@@ -1,0 +1,12 @@
+{
+  "n_features": 8460,
+  "train_size": 8932,
+  "comment": "",
+  "feature_extraction_time": 47.93,
+  "train_time": 54.5,
+  "test_size": 2234,
+  "n_cars": 2198,
+  "predict_10_time": 0.0,
+  "n_not_cars": 8968,
+  "accuracy": 0.9799
+}

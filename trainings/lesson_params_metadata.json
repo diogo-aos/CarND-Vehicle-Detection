@@ -1,0 +1,9 @@
+{
+  "n_features": 8460,
+  "feature_extraction_time": 88.74,
+  "test_size": 3552,
+  "train_time": 34.17,
+  "train_size": 14208,
+  "predict_10_time": 0.0,
+  "accuracy": 0.9916
+}
