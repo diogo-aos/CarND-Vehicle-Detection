@@ -6,6 +6,7 @@ import os
 import time
 import multiprocessing as mp
 from collections import OrderedDict
+from random import shuffle
 
 from sklearn.model_selection import train_test_split
 from sklearn.svm import LinearSVC
@@ -51,7 +52,8 @@ print('not cars length:', len(not_cars))
 # cars = cars[:500]
 # not_cars = not_cars[:500]
 
-cars = cars[::4]
+shuffle(cars)
+cars = cars[::2]
 
 print('training with {} car samples and {} not car sampels'.format(len(cars), len(not_cars)))
 
@@ -59,6 +61,8 @@ all_fn = cars.copy()
 all_fn.extend(not_cars)
 
 import tempfile
+
+
 
 # 4 processes, one for half of each set
 def extract(lst, q):
@@ -70,6 +74,19 @@ def extract(lst, q):
     q.put(fn)
     print('done; saved data in ', fn)
 
+def extract_progbar(lst, q):
+    fn = tempfile.mktemp()
+    feature_gen = extract_features_files(lst, **train_config)
+    features = []
+    progress = tqdm.tqdm(total=len(lst))
+    for feature in feature_gen:
+        features.append(feature)
+        progress.update()
+    with open(fn, 'wb') as f:
+        pickle.dump(features, f)
+    q.put(fn)
+    # print('done; saved data in ', fn)
+
 feature_ext_time = time.time()
 
 n_procs = 4
@@ -77,12 +94,15 @@ steps = list(np.linspace(0, len(all_fn), n_procs+1, dtype=np.int))
 queues = [mp.Queue() for x in range(n_procs)]
 procs = []
 for i, q in enumerate(queues):
-    p = mp.Process(target=extract, args=(all_fn[steps[i]:steps[i+1]], q))
+    func = extract
+    if i == 0:
+        func = extract_progbar
+    p = mp.Process(target=func, args=(all_fn[steps[i]:steps[i+1]], q))
     p.start()
     procs.append(p)
 
 temp_files = [q.get(block=True) for q in queues]
-print(temp_files)
+# print(temp_files)
 
 feature_ext_time = round(time.time() - feature_ext_time, 2)
 print('took {} seconds to extract all features'.format(feature_ext_time))
@@ -110,6 +130,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     scaled_X, y, test_size=0.2, random_state=rand_state)
 
 print('Feature vector length:', len(X_train[0]))
+print('training classifier...')
 # Use a linear SVC
 svc = LinearSVC()
 # Check the training time for the SVC

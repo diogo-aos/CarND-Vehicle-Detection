@@ -32,3 +32,11 @@ def get_stuff_from_run_config(conf):
 def read_image_rgb(fn):
     img = cv2.imread(fn)
     return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+def write_on_image(img, txt=[]):
+    'write strings in txt in corresponding lines in lines'
+    img = img.copy()
+    x, y = 0, 35
+    for l, t in enumerate(txt):
+        cv2.putText(img, t, (0, y * (l + 1)), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
+    return img

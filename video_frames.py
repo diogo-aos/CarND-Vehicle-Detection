@@ -57,6 +57,8 @@ if __name__ == '__main__':
     paths = sorted(paths, key=get_path_sort_key)
     fig = plt.figure()
 
+    all_ret = []
+
     progress = tqdm.tqdm(total=len(paths))
     for i, p in enumerate(paths):
         img = read_image_rgb(p)
@@ -83,11 +85,12 @@ if __name__ == '__main__':
         # ret['all_windows'] = len(ret['all_windows'])
         del ret['img']
         del ret['im_buffer']
-        with open(os.path.join(output_dir, 'ret.p'), 'ab') as fret:
-            pickle.dump(ret, fret)
+        all_ret.append(ret)
+        with open(os.path.join(output_dir, 'ret.p'), 'wb') as fret:
+            pickle.dump(all_ret, fret)
         # save img with overlaying windows and heatmap
 
-        print('pipeline time: ', pipe_time)
+        # print('pipeline time: ', pipe_time)
         # print('plot time: ', plot_time)
         # print('save time: ', save_time)
 

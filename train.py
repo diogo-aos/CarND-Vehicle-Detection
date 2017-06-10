@@ -1,21 +1,18 @@
-from sklearn.model_selection import train_test_split
-from sklearn.svm import LinearSVC
-from sklearn.preprocessing import StandardScaler
-
-from lessons import extract_features_files
-
-import numpy as np
-
+from random import shuffle
 import pickle
 import json
-
 import sys
 import fnmatch
 import os
-
 import time
+
+from sklearn.model_selection import train_test_split
+from sklearn.svm import LinearSVC
+from sklearn.preprocessing import StandardScaler
+import numpy as np
 import tqdm
 
+from lessons import extract_features_files
 from utils import *
 
 train_config = get_train_config_from_cli(sys.argv)
@@ -41,11 +38,15 @@ for root, dirnames, filenames in os.walk(not_cars_root_fn):
     for filename in fnmatch.filter(filenames, '*.png'):
         not_cars.append(os.path.join(root, filename))
 
-print('cars length:', len(cars))
-print('not cars length:', len(not_cars))
 
 # cars = cars[:500]
 # not_cars = not_cars[:500]
+
+shuffle(cars)
+cars = cars[::2]
+
+print('cars length:', len(cars))
+print('not cars length:', len(not_cars))
 
 car_features_gen = extract_features_files(cars, **train_config)
 not_car_features_gen = extract_features_files(not_cars, **train_config)

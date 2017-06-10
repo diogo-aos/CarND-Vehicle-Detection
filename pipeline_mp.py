@@ -8,6 +8,7 @@ import multiprocessing as mp
 
 import cv2
 import numpy as np
+import tqdm
 import matplotlib
 
 matplotlib.use("TkAgg")
@@ -25,6 +26,15 @@ def get_im_buffer(max_lex):
         im_buffer = deque([], max_lex)
     return im_buffer
 
+def process_window(img, cv_args, scaler, classifier,
+                    *args, **kwargs):
+    test_img = cv2.resize(img, (64, 64))
+    test_features = extract_features(test_img, **cv_args)
+    test_scaled = scaler.transform(np.array(test_features).reshape(1, -1))
+    is_car = classifier.predict(test_scaled)
+
+    return is_car == 1
+
 def process_scale(scale, img, x_start_end, y_start_end, window_size,
              window_scale_min_max, window_n_scales, window_overlap,
              cv_args,
@@ -38,11 +48,9 @@ def process_scale(scale, img, x_start_end, y_start_end, window_size,
                            xy_overlap=window_overlap)
     on_window = []
     for window in windows:
-        test_img = cv2.resize(img[window[0][1]:window[1][1],
-                                  window[0][0]:window[1][0]], (64, 64))
-        test_features = extract_features(test_img, **cv_args)
-        test_scaled = scaler.transform(np.array(test_features).reshape(1, -1))
-        is_car = classifier.predict(test_scaled)
+        window_img = img[window[0][1]:window[1][1], window[0][0]:window[1][0]]
+        is_car = process_window(window_img, cv_args, scaler, classifier,
+                                 *args, **kwargs)
         if is_car:
             on_window.append(window)
 
@@ -101,6 +109,25 @@ def process_scale_mp(q, scale, img, x_start_end, y_start_end, window_size,
     print('inner proc time scale {}: {}'.format(scale, time.time() - start))
     q.put(on_window)
 
+def process_windows_mp(q, window_list, progbar, img, cv_args, scaler, classifier,
+                       *args, **kwargs):
+    on_window = []
+    # start = time.time()
+    if progbar:
+        progress = tqdm.tqdm(total=len(window_list))
+    for window in window_list:
+        x0, y0 = window[0]
+        x1, y1 = window[1]
+        is_car = process_window(img[y0:y1,x0:x1,:], cv_args, scaler, classifier,
+                                *args, **kwargs)
+        if is_car:
+            on_window.append(window)
+
+        if progbar:
+            progress.update()
+    # print('inner proc time scale: {}'.format(time.time() - start))
+    q.put(on_window)
+
 def pipeline_mp(img, x_start_end, y_start_end, window_size,
              window_scale_min_max, window_n_scales, window_overlap,
              heatmap_min_threshold, cv_args,
@@ -118,26 +145,38 @@ def pipeline_mp(img, x_start_end, y_start_end, window_size,
     windows_time = time.time()
     procs, queues = [], []
     for scale in scales:
+        scaled_window_size = [int(scale * c) for c in window_size]
+
+        windows = slide_window(img, x_start_stop=x_start_end,
+                               y_start_stop=y_start_end,
+                               xy_window=scaled_window_size,
+                               xy_overlap=window_overlap)
+        all_windows.extend(windows)
+
+    n_procs = 4
+    win_intervals = np.linspace(0, len(all_windows), n_procs + 1, dtype=np.int)
+
+    for i in range(n_procs):
+        progbar = False if i != 0 else False
+        win_lst = all_windows[win_intervals[i]:win_intervals[i+1]]
         q = mp.Queue()
-        p = mp.Process(target=process_scale_mp, args=(q, scale), kwargs=my_args)
+        p = mp.Process(target=process_windows_mp, args=(q, win_lst, progbar), kwargs=my_args)
         p.start()
         procs.append(p)
         queues.append(q)
 
     for p, q in zip(procs, queues):
-
         p.join()
-        print('proc time:', time.time() - windows_time)
         on_window.extend(q.get())
     windows_time = time.time() - windows_time
-    print('windows time:', windows_time)
+    # print('windows time:', windows_time)
 
     heatmap = create_heatmap(img, on_window, threshold=heatmap_min_threshold)
     im_buffer.appendleft(heatmap)
 
     ret['img'] = img
     ret['im_buffer'] = list(im_buffer)
-    # ret['all_windows'] = all_windows
+    ret['all_windows'] = all_windows
     ret['on_window'] = on_window
 
     # print('checked {} windows'.format(len(all_windows)))
@@ -164,7 +203,7 @@ if __name__ == '__main__':
 
     for p in paths:
         img = read_image_rgb(p)
-        ret = pipeline(img, **all_args)
+        ret = pipeline_mp(img, **all_args)
         rets.append(ret)
 
     # for ret in rets:

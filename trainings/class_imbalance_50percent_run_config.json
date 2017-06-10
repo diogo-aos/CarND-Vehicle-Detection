@@ -21,7 +21,7 @@
     0.75,
     0.75
   ],
-  "heatmap_min_threshold": 3,
-  "scaler_classifier_path": "trainings/class_inbalance_classifier.p",
-  "train_config_path": "trainings/class_inbalance_cv_config.json"
+  "heatmap_min_threshold": 1,
+  "scaler_classifier_path": "trainings/class_imbalance_50percent_classifier.p",
+  "train_config_path": "trainings/class_imbalance_50percent_cv_config.json"
 }

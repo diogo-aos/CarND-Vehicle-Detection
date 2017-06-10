@@ -81,6 +81,30 @@ def slide_window(img, x_start_stop=[None, None], y_start_stop=[None, None],
 
             # Append window position to list
             window_list.append(((startx, starty), (endx, endy)))
+    # check area edges
+    # if leftover pixels in x axis, add windows touching right edge
+    # search_width = x_start_stop[1] - x_start_stop[0]
+    # x_leftover_px = search_width % xy_window[0]
+    # if x_leftover_px > 0:
+    #     y_start = y_start_stop[0]
+    #     left = x_start_stop[0] - xy_window[0]
+    #     while y_start <= y_start_stop[1] - xy_window[1]:
+    #         top_left = (left, y_start)
+    #         bot_right = (y_start + xy_window[1], x_start_stop[1])
+    #
+    #         y_start += ny_pix_per_step
+    #
+    # # if leftover pixels in y axis, add window touching bottom edge
+    # search_height = y_start_stop[1] - y_start_stop[0]
+    # y_leftover_px = search_height % xy_window[1]
+    # if y_leftover_px > 0:
+    #     x_start = x_start_stop[0]
+    #     top = y_start_stop[0] - xy_window[1]
+    #     while x_start <= x_start_stop[1] - xy_window[0]:
+    #         top_left = (x_start, top)
+    #         bot_right = (x_start + xy_window[1], y_start_stop[1])
+    #
+    #         x_start += nx_pix_per_step
     # Return the list of windows
     return window_list
 

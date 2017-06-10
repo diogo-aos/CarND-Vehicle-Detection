@@ -41,3 +41,13 @@ memory or something like that.
 
 I should also parallelize the pipeline (one scale per process). I also want to
 reduce the spatial features to 16x16 and see the effect.
+
+
+# too many false positives
+2017-06-10 17:15
+
+I think using only 25% of the positive dataset is a bit too little. I'll train
+a new classifier with 50%.
+
+Isabella also suggested processing the dataset by hand to remove contiguous
+frames from the dataset.
