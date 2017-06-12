@@ -9,11 +9,6 @@ import multiprocessing as mp
 import cv2
 import numpy as np
 import tqdm
-import matplotlib
-
-matplotlib.use("TkAgg")
-
-import matplotlib.pyplot as plt
 
 from lessons import *
 from utils import *
@@ -72,20 +67,12 @@ def pipeline(img, x_start_end, y_start_end, window_size,
     all_windows = []
     windows_time = time.time()
     for scale in scales:
-        p = mp.Process()
         scaled_detections, scaled_windows = process_scale(scale, **my_args)
 
         on_window.extend(scaled_detections)
         all_windows.extend(scaled_windows)
-    windows_time = time.time() - windows_time
-    print('windows time:', windows_time)
-
-    print('heatmap threshold:', heatmap_min_threshold)
-    heatmap = create_heatmap(img, on_window, threshold=heatmap_min_threshold)
-    im_buffer.appendleft(heatmap)
 
     ret['img'] = img
-    ret['im_buffer'] = list(im_buffer)
     ret['all_windows'] = all_windows
     ret['on_window'] = on_window
 
@@ -131,7 +118,7 @@ def process_windows_mp(q, window_list, progbar, img, cv_args, scaler, classifier
 def pipeline_mp(img, x_start_end, y_start_end, window_size,
              window_scale_min_max, window_n_scales, window_overlap,
              heatmap_min_threshold, cv_args,
-             scaler, classifier, buffer_max_len,
+             scaler, classifier, buffer_max_len, n_procs=4,
              *args, **kwargs):
     ''' expects RGB img'''
     my_args = locals()
@@ -153,7 +140,6 @@ def pipeline_mp(img, x_start_end, y_start_end, window_size,
                                xy_overlap=window_overlap)
         all_windows.extend(windows)
 
-    n_procs = 4
     win_intervals = np.linspace(0, len(all_windows), n_procs + 1, dtype=np.int)
 
     for i in range(n_procs):
@@ -169,13 +155,8 @@ def pipeline_mp(img, x_start_end, y_start_end, window_size,
         p.join()
         on_window.extend(q.get())
     windows_time = time.time() - windows_time
-    # print('windows time:', windows_time)
-
-    heatmap = create_heatmap(img, on_window, threshold=heatmap_min_threshold)
-    im_buffer.appendleft(heatmap)
 
     ret['img'] = img
-    ret['im_buffer'] = list(im_buffer)
     ret['all_windows'] = all_windows
     ret['on_window'] = on_window
 
@@ -203,7 +184,7 @@ if __name__ == '__main__':
 
     for p in paths:
         img = read_image_rgb(p)
-        ret = pipeline_mp(img, **all_args)
+        ret = pipeline_mp(img, n_procs=4, **all_args)
         rets.append(ret)
 
     # for ret in rets:

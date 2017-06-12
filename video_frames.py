@@ -42,7 +42,7 @@ if __name__ == '__main__':
     #     shutil.rmtree(output_dir)
     # os.mkdir(output_dir)
 
-    prefix = get_arg('-n') or 'ret_'
+    prefix = get_arg('-n') or 'ret'
     now = datetime.datetime.now()
     name = now.strftime('{}_%Y_%m_%d_%H_%M_%S.p'.format(prefix))
 
@@ -64,16 +64,56 @@ if __name__ == '__main__':
     fn = sys.argv[1]
     paths = glob.glob(fn)
     paths = sorted(paths, key=get_path_sort_key)
-    fig = plt.figure()
 
     store = {'run_config': run_config,
              'processed_frames': []}
+
+    n_procs = get_arg('-nprocs') or '4'
+    n_procs = int(n_procs)
+
+
+    # import multiprocessing as mp
+    # def process_frames(q, frames, progbar, **all_args):
+    #     processed = []
+    #     if progbar:
+    #         progress = tqdm.tqdm(total=len(frames))
+    #     for frame_path in frames:
+    #         img = read_image_rgb(frame_path)
+    #         ret = pipeline(img, **all_args)
+    #         frame = {'im_path': p, 'on_window': ret['on_window']}
+    #         processed.append(frame)
+    #         if progbar:
+    #             progress.update()
+    #     q.put(processed)
+    #
+
+    # procs, queues = [], []
+    # path_intervals = np.linspace(0, len(paths), n_procs + 1, dtype=np.int)
+    # for i in range(n_procs):
+    #     progbar = False if i != 0 else True
+    #     path_lst = paths[path_intervals[i]:path_intervals[i+1]]
+    #     q = mp.Queue()
+    #     p = mp.Process(target=process_frames, args=(q, path_lst, progbar), kwargs=all_args)
+    #     p.start()
+    #     procs.append(p)
+    #     queues.append(q)
+    #
+    # print('waiting for processes to end...')
+    # for p, q in zip(procs, queues):
+    #     p.join()
+    #     store['processed_frames'].extend(q.get())
+    #
+    #
+    # with open(os.path.join(output_dir, name), 'wb') as fret:
+    #     pickle.dump(store, fret)
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     progress = tqdm.tqdm(total=len(paths))
     for i, p in enumerate(paths):
         img = read_image_rgb(p)
         pipe_time = time.time()
-        ret = pipeline_mp(img, **all_args)
+        ret = pipeline_mp(img, n_procs=n_procs, **all_args)
         pipe_time = time.time() - pipe_time
 
         # pickle ret
