@@ -1,6 +1,7 @@
 import json
 from collections import OrderedDict
 import pickle
+import sys
 
 import cv2
 
@@ -40,3 +41,20 @@ def write_on_image(img, txt=[]):
     for l, t in enumerate(txt):
         cv2.putText(img, t, (0, y * (l + 1)), cv2.FONT_HERSHEY_SIMPLEX, 1, 255, 2)
     return img
+
+
+def get_arg(key):
+    if key in sys.argv:
+        idx = sys.argv.index(key)
+        val = sys.argv[idx + 1]
+        return val
+    return None
+
+if __name__ == '__main__':
+    show_run_config_of_ret = get_arg('-s')
+    if show_run_config_of_ret:
+        with open(show_run_config_of_ret, 'rb') as f:
+            ret = pickle.load(f)
+            run_config = ret['run_config']
+            print_ready = json.dumps(run_config, indent=2)
+            print(print_ready)

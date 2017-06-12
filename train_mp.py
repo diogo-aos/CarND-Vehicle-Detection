@@ -32,19 +32,23 @@ else:
     output_dir = ''
 
 
-cars_root_fn = '/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/vehicles/'
-not_cars_root_fn = '/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/non-vehicles/'
+cars_dataset_paths = train_config['car_dataset']
+not_cars_dataset_paths = train_config['noncar_dataset']
 
+# cars_root_fn = '/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/vehicles/'
+# not_cars_root_fn = '/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/non-vehicles/'
 
 cars = []
-for root, dirnames, filenames in os.walk(cars_root_fn):
-    for filename in fnmatch.filter(filenames, '*.png'):
-        cars.append(os.path.join(root, filename))
+for cars_root_fn in cars_dataset_paths:
+    for root, dirnames, filenames in os.walk(cars_root_fn):
+        for filename in fnmatch.filter(filenames, '*.png'):
+            cars.append(os.path.join(root, filename))
 
 not_cars = []
-for root, dirnames, filenames in os.walk(not_cars_root_fn):
-    for filename in fnmatch.filter(filenames, '*.png'):
-        not_cars.append(os.path.join(root, filename))
+for not_cars_root_fn in not_cars_dataset_paths:
+    for root, dirnames, filenames in os.walk(not_cars_root_fn):
+        for filename in fnmatch.filter(filenames, '*.png'):
+            not_cars.append(os.path.join(root, filename))
 
 print('cars length:', len(cars))
 print('not cars length:', len(not_cars))

@@ -51,3 +51,26 @@ a new classifier with 50%.
 
 Isabella also suggested processing the dataset by hand to remove contiguous
 frames from the dataset.
+
+# where to improve?
+2017-06-11 21:24
+
+I trained the new classifier. The performance increased a little, but I still
+get a lot of false positives. I'm thinking about trying 2 things:
+
+1. increase minimum window size
+2. train new classifier without the data that has "redundant" frames
+
+# tracking and removing false positives
+2017-06-12 07:33
+
+Tracking: when a detection would exceed a second threshold or if it is persistent
+for enough frames, it could be considered a car and we could then try to model
+its movement from frame to frame. I thought about template matching, but this
+would be no good when the car goes under shadows.
+
+Removing false positives: I need a more robust way, a second layer perhaps, of
+removing false positives. They seem to be more jumpy from frame to frame, so
+maybe that's something I could use. Maybe something like mainting the heatmap
+buffer but now base is off a second heatmap that tracks heat from frame to
+frame.

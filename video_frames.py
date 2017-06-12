@@ -7,6 +7,7 @@ import glob
 import os
 import os.path
 import shutil
+import datetime
 
 import tqdm
 import cv2
@@ -23,19 +24,27 @@ from pipeline_mp import *
 
 if __name__ == '__main__':
 
+    def get_arg(key):
+        if key in sys.argv:
+            idx = sys.argv.index(key)
+            val = sys.argv[idx + 1]
+            return val
+        return None
+
     # setup output directory
-    output_dir = 'output/'
-    if '-o' in sys.argv:
-        idx = sys.argv.index('-o')
-        output_dir = sys.argv[idx + 1]
+    output_dir = get_arg('-o') or 'output/'
     output_dir = os.path.abspath(output_dir)
     if not os.path.exists(output_dir):
-        print('output dir does not exist')
+        print('output dir does not \exist')
         sys.exit(0)
-    output_dir = os.path.join(output_dir, 'processed')
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+    # output_dir = os.path.join(output_dir, 'processed')
+    # if os.path.exists(output_dir):
+    #     shutil.rmtree(output_dir)
+    # os.mkdir(output_dir)
+
+    prefix = get_arg('-n') or 'ret_'
+    now = datetime.datetime.now()
+    name = now.strftime('{}_%Y_%m_%d_%H_%M_%S.p'.format(prefix))
 
     # get and prepare configurations for pipeline
     run_config = get_run_config_from_cli(sys.argv)
@@ -57,7 +66,8 @@ if __name__ == '__main__':
     paths = sorted(paths, key=get_path_sort_key)
     fig = plt.figure()
 
-    all_ret = []
+    store = {'run_config': run_config,
+             'processed_frames': []}
 
     progress = tqdm.tqdm(total=len(paths))
     for i, p in enumerate(paths):
@@ -66,33 +76,13 @@ if __name__ == '__main__':
         ret = pipeline_mp(img, **all_args)
         pipe_time = time.time() - pipe_time
 
-        plot_time = time.time()
-        plt.subplot(121)
-        plt.imshow(draw_boxes(ret['img'], ret['on_window']))
-        plt.subplot(122)
-        plt.title('#on_windows={}'.format(len(ret['on_window'])))
-        plt.imshow(np.sum(ret['im_buffer'], axis=0), cmap='hot')
-        plt.title('Heat Map')
-        fig.tight_layout()
-        plt.colorbar()
-        plot_time = time.time() - plot_time
-        fig.savefig(os.path.join(output_dir, '{}.jpg'.format(i)))
-        plt.gcf().clear()
-
-
         # pickle ret
-        ret['im_path'] = p
-        # ret['all_windows'] = len(ret['all_windows'])
-        del ret['img']
-        del ret['im_buffer']
-        all_ret.append(ret)
-        with open(os.path.join(output_dir, 'ret.p'), 'wb') as fret:
-            pickle.dump(all_ret, fret)
-        # save img with overlaying windows and heatmap
+        frame = {'im_path': p, 'on_window': ret['on_window']}
+        store['processed_frames'].append(frame)
+        with open(os.path.join(output_dir, name), 'wb') as fret:
+            pickle.dump(store, fret)
 
         # print('pipeline time: ', pipe_time)
-        # print('plot time: ', plot_time)
         # print('save time: ', save_time)
-
 
         progress.update()

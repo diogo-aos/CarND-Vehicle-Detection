@@ -1,8 +1,10 @@
+import time
+
 import matplotlib.image as mpimg
 import numpy as np
 import cv2
-import time
 from skimage.feature import hog
+from scipy.ndimage.measurements import label
 
 # Define a function to return HOG features and visualization
 def get_hog_features(img, orient, pix_per_cell, cell_per_block,
@@ -139,7 +141,8 @@ def convert_color(image, color_space):
 def extract_features(img, color_space='RGB', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
-                        spatial_feat=True, hist_feat=True, hog_feat=True):
+                        spatial_feat=True, hist_feat=True, hog_feat=True,
+                        *args, **kwargs):
     # Create a list to append feature vectors to
     features = []
     image = img
@@ -206,3 +209,41 @@ def apply_threshold(img, threshold):
     im = img.copy()
     im[im <= threshold] = 0
     return im
+
+
+def draw_labeled_bboxes(img, labels):
+    im = img.copy()
+    # Iterate through all detected cars
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        print('bbox=', bbox)
+        # Draw the box on the image
+        cv2.rectangle(im, bbox[0], bbox[1], (0,0,255), 6)
+    # Return the image
+    return im
+
+
+def get_labeled_bboxes(labels):
+    bboxes = []
+    # Iterate through all detected boxes
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        bboxes.append(bbox)
+    return bboxes
+
+def get_bboxes_from_heatmap(heatmap):
+    labels = label(heatmap)
+    # im_disp = draw_labeled_bboxes(im_disp, labels)
+    return get_labeled_bboxes(labels)
