@@ -1,0 +1,21 @@
+{
+  "spatial_feat": false,
+  "hist_feat": false,
+  "hog_feat": true,
+  "color_space": "YCrCb",
+  "spatial_size": [
+    32,
+    32
+  ],
+  "hist_bins": 32,
+  "orient": 9,
+  "pix_per_cell": 8,
+  "cell_per_block": 2,
+  "hog_channel": "ALL",
+  "car_dataset": [
+    "/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/vehicles/vehicles/"
+  ],
+  "noncar_dataset": [
+    "/home/chiro/workspace/self_driving_car/CarND-Vehicle-Detection/dataset/non-vehicles"
+  ]
+}

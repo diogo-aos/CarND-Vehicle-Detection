@@ -71,6 +71,25 @@ would be no good when the car goes under shadows.
 
 Removing false positives: I need a more robust way, a second layer perhaps, of
 removing false positives. They seem to be more jumpy from frame to frame, so
-maybe that's something I could use. Maybe something like mainting the heatmap
+maybe that's something I could use. Maybe something like maintaining the heatmap
 buffer but now base is off a second heatmap that tracks heat from frame to
 frame.
+
+
+# 2 layer heatmap not working
+2017-06-13 07:42
+
+The 2 layer heatmap is not working. What I did was applying a prior threshold
+to the heatmap of a single layer. The resulting bounding boxes (bboxes) of that
+would be the ones used for the heatmap of the image buffer. There are a few less
+false positives, particularly when there is no shadows, but it also makes the
+bbox around the car less stable.
+
+
+# combining detections
+2017-06-14 17:27
+
+I should look into combining detections. The problem is that the same car will
+result in more than 1 detection, that are very close together. I should write
+something that will check if a detection has some minimum width or height and
+combines it with other detections if they are close enough.

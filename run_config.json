@@ -5,7 +5,7 @@
   "window_size": [64, 64],
   "window_scale_min_max": [1.0, 3.0],
   "window_n_scales": 4,
-  "window_overlap": [0.75, 0.75],
+  "window_overlap": [0.0, 0.0],
   "heatmap_min_threshold": 1,
   "scaler_classifier_path": "",
   "train_config": ""

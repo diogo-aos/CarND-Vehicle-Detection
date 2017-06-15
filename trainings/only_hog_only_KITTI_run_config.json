@@ -1,0 +1,27 @@
+{
+  "buffer_max_len": 5,
+  "y_start_end": [
+    350,
+    656
+  ],
+  "x_start_end": [
+    0,
+    1280
+  ],
+  "window_size": [
+    64,
+    64
+  ],
+  "window_scale_min_max": [
+    1.0,
+    3.5
+  ],
+  "window_n_scales": 6,
+  "window_overlap": [
+    0.5,
+    0.5
+  ],
+  "heatmap_min_threshold": 1,
+  "scaler_classifier_path": "trainings/only_hog_only_KITTI_classifier.p",
+  "train_config_path": "trainings/only_hog_only_KITTI_cv_config.json"
+}

@@ -13,15 +13,15 @@
     64
   ],
   "window_scale_min_max": [
-    1.5,
-    3.0
+    1.0,
+    3.5
   ],
-  "window_n_scales": 4,
+  "window_n_scales": 6,
   "window_overlap": [
-    0.75,
-    0.75
+    0.5,
+    0.5
   ],
-  "heatmap_min_threshold": 1,
+  "heatmap_min_threshold": 0,
   "scaler_classifier_path": "trainings/only_KITTI_cars_classifier.p",
   "train_config_path": "trainings/only_KITTI_cars_cv_config.json"
 }
