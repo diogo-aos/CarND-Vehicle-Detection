@@ -81,10 +81,11 @@ while True:
     txt.append('heatmap threshold = {}'.format(thresh))
 
     # transform heatmap
-    heat_disp = (heatmap * 100 / heatmap.max()).astype(np.uint8)
-    heat_disp = np.stack((heatmap, heatmap, heatmap), axis=2)
+    heat_disp = (heatmap_0 * 255 / heatmap_0.max()).astype(np.uint8)
+    heat_disp = np.stack((heat_disp, heat_disp, heat_disp), axis=2)
     heat_disp = cv2.resize(heat_disp, (new_w, new_h))
     heat_disp[...,:2] = 0
+
 
     if show_buffer_boxes:
         im = draw_boxes(im, windows)
@@ -152,19 +153,47 @@ while True:
         show_frame_boxes = not show_frame_boxes
     elif key == ord('d'):
         show_heatmap = not show_heatmap
-    elif key == ord(' '):
-        if timeout == 0:
-            timeout = 42
-        else:
-            timeout = 0
+
 
     elif key == ord('w'):
         img = cv2.imread(current['im_path'])
         fn = input('filename:')
         cv2.imwrite(fn, img)
 
+    elif key == ord('e'):
+        fn = input('filename:')
+        cv2.imwrite(fn, im)
+
+    elif key == ord('r'):
+        cv2.imshow('frame', heat_disp)
+        cv2.waitKey()
+
+    elif key == ord('f'):
+        fn = input('filename:')
+        cv2.imwrite(fn, heat_disp)
+
+    elif key == ord('z'):
+        # frame heatmap
+        fheatmap = create_heatmap(im, frame['on_window'], threshold=0)
+        fheat_disp = (fheatmap * 255 / fheatmap.max()).astype(np.uint8)
+        print('fheat disp max:', fheat_disp.max())
+        fheat_disp = np.stack((fheat_disp, fheat_disp, fheat_disp), axis=2)
+        fheat_disp = cv2.resize(fheat_disp, (new_w, new_h))
+        fheat_disp[...,:2] = 0
+        print('fheat max:', fheatmap.max())
+
+        cv2.imshow('frame', fheat_disp)
+        cv2.waitKey()
+
+    elif key == ord('x'):
+        try:
+            fn = input('filename:')
+            cv2.imwrite(fn, fheat_disp)
+        except Exception as e:
+            print(e)
+
     # tweak controls
-    if key == ord('y'):
+    elif key == ord('y'):
         thresh += 1
     elif key == ord('h'):
         thresh -= 1
@@ -200,9 +229,9 @@ while True:
         i = max(0, i)
 
     # slideshow mode
-    else:
-        i += inc
-        i = min(i, n_frames - 1)
-        if i == n_frames - 1:
+    elif key == ord(' '):
+        if timeout == 0:
             timeout = 42
+        else:
+            timeout = 0
 cv2.destroyAllWindows()

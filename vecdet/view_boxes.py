@@ -56,5 +56,8 @@ if __name__ == '__main__':
             elif key == ord('q'):
                 cv2.destroyAllWindows()
                 sys.exit(0)
+            elif key == ord('s'):
+                fn = input('filename:')
+                cv2.imwrite(fn, im)
 
     cv2.destroyAllWindows()
